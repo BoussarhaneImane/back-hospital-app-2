@@ -1,69 +1,36 @@
-require('dotenv').config();
-const express = require("express");
+const express = require('express');
 const mongoose = require('mongoose');
-const cors = require("cors");
-const clientsModel = require('./models/clients'); 
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const patientRoutes = require('./routes/patientRoutes');
+const appointmentRoutes = require('./routes/appointmentRoutes');
+const authRoutes = require('./routes/authRoutes'); // Import the authentication routes
+
 const app = express();
+const port = process.env.PORT || 5000;
 
-console.log("Starting the server...");
-
-app.use(express.json());
+// Middleware
 app.use(cors());
+app.use(bodyParser.json());
 
-const mongoUri = process.env.MONGO_URL;
-const PORT = process.env.PORT ;
+mongoose.connect(process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/hospital_management')
+  .then(() => {
+    console.log('MongoDB connected');
+  }).catch(err => {
+    console.error('MongoDB connection error:', err);
+  });
 
-console.log("MongoDB URI:", mongoUri);
-console.log("Server will run on port:", PORT);
+// Routes
+app.use('/api/patients', patientRoutes);
+app.use('/api/appointments', appointmentRoutes);
+app.use('/api/auth', authRoutes); // Add the authentication routes
 
-const connectToMongoDB = async () => {
-  try {
-    console.log("Attempting to connect to MongoDB...");
-    await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.info("Connected to MongoDB Atlas with success");
-  } catch (err) {
-    console.error("Error connecting to MongoDB:", err);
-  }
-};
-
-connectToMongoDB();
-
-app.post('/login', (req, res) => {
-  console.log("/login endpoint hit");
-  const { email, password } = req.body;
-  clientsModel.findOne({ email: email })
-    .then(user => {
-      if (user) {
-        if (user.password === password) {
-          res.json({ name: user.name });
-        } else {
-          res.json("The password is incorrect, ops!");
-        }
-      } else {
-        res.json("No record existed");
-      }
-    })
-    .catch(err => res.json(err));
+// Start the server
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
 
-app.post('/register', (req, res) => {
-  console.log("/register endpoint hit");
-  clientsModel.create(req.body)
-    .then(client => res.json(client))
-    .catch(err => res.json(err));
-});
-
+// Base route to check if the server is running
 app.get('/', (req, res) => {
-  console.log("/ endpoint hit");
-  res.send('Hello backend from express');
-});
-app.get('/hy', (req, res) => {
-     res.send('hy friends');
-   });
-app.listen(PORT, () => {
-  console.log(`Server running good on port ${PORT}`);
-  console.log('hey');
+  res.send('Welcome to Hospital Management System');
 });
